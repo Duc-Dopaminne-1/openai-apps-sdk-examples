@@ -96,7 +96,6 @@ def _widget_meta() -> Dict[str, Any]:
         "openai/toolInvocation/invoking": WIDGET_INVOKING,
         "openai/toolInvocation/invoked": WIDGET_INVOKED,
         "openai/widgetAccessible": True,
-        "openai/resultCanProduceWidget": True,
     }
 
 

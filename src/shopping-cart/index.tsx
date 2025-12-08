@@ -51,18 +51,15 @@ function JsonPanel({ label, value }: JsonPanelProps) {
   );
 }
 
+const createDefaultCartState = (): CartWidgetState => ({
+  items: [],
+});
+
 function App() {
   const toolInput = useOpenAiGlobal("toolInput");
-  const toolResponseMetadata = useOpenAiGlobal("toolResponseMetadata");
   const toolOutput = useOpenAiGlobal("toolOutput");
   const widgetState = useOpenAiGlobal("widgetState");
-  const [cartState, setCartState] = useWidgetState<CartWidgetState>(() => {
-    if (widgetState && typeof widgetState === "object") {
-      return widgetState as CartWidgetState;
-    }
-
-    return { items: [] };
-  });
+  const [cartState, setCartState] = useWidgetState<CartWidgetState>(createDefaultCartState);
   const cartItems = Array.isArray(cartState?.items) ? cartState.items : [];
 
   function adjustQuantity(name: string, delta: number) {
@@ -98,45 +95,43 @@ function App() {
     });
   }
 
-  function widgetStateEqual(a: unknown, b: unknown): boolean {
-    if (a == null && b == null) {
-      return true;
-    }
-
-    if (a == null || b == null) {
-      return false;
-    }
-
-    return JSON.stringify(a) === JSON.stringify(b);
-  }
-
-  const lastMergedStateRef = useRef<string>("__cart_merge_unset__");
+  const lastToolOutputRef = useRef<string>("__tool_output_unset__");
 
   useEffect(() => {
-    // Merge streamed toolInput items with the latest host widgetState or local cart
-    // state. Runs whenever toolInput/toolOutput/widgetState changes so host updates
-    // do not wipe in-session cart.
-    if (toolInput == null && toolOutput == null && widgetState == null) {
+
+    // Merge deltas (toolOutput) into the latest widgetState without
+    // and then update cartState. Runs whenever toolOutput changes.
+    if (toolOutput == null) {
       return;
     }
 
-    console.log("merge effect triggered", {
-      toolInput,
-      toolOutput,
-      widgetState,
-      cartState,
-    });
+    // changes to cartState triggered from UI will also trigger another global update event, so we need to check if the toolOutput has actually changed.
+    const serializedToolOutput = (() => {
+      try {
+        return JSON.stringify(toolOutput);
+      } catch (error) {
+        console.warn("Unable to serialize toolOutput", error);
+        return "__tool_output_error__";
+      }
+    })();
 
+    if (serializedToolOutput === lastToolOutputRef.current) {
+      console.log("useEffect skipped (toolOutput is actually unchanged)");
+      return;
+    }
+    lastToolOutputRef.current = serializedToolOutput;
+
+    // Get the items that the user wants to add to the cart from toolOutput
     const incomingItems = Array.isArray(
-      (toolInput as { items?: unknown } | null)?.items
+      (toolOutput as { items?: unknown } | null)?.items
     )
-      ? ((toolInput as { items?: CartItem[] }).items ?? [])
+      ? ((toolOutput as { items?: CartItem[] }).items ?? [])
       : [];
 
-    const baseState =
-      widgetState && typeof widgetState === "object"
-        ? (widgetState as CartWidgetState)
-        : cartState ?? { items: [] };
+    // Since we set `widgetSessionId` on the tool response, when the tool response returns
+    // widgetState should contain the state from the previous turn of conversation
+    // treat widgetState as the definitive local state, and add the new items
+    const baseState = widgetState ?? createDefaultCartState();
     const baseItems = Array.isArray(baseState.items) ? baseState.items : [];
 
     const itemsByName = new Map<string, CartItem>();
@@ -145,6 +140,7 @@ function App() {
         itemsByName.set(item.name, item);
       }
     }
+    // Add in the new items to create newState
     for (const item of incomingItems) {
       if (item?.name) {
         itemsByName.set(item.name, { ...itemsByName.get(item.name), ...item });
@@ -154,28 +150,16 @@ function App() {
     const nextItems = Array.from(itemsByName.values());
     const nextState = { ...baseState, items: nextItems };
 
-    const serialized = JSON.stringify(nextState);
-    const shouldForceSyncFromResponse = widgetState == null && toolOutput != null;
-    if (!shouldForceSyncFromResponse && serialized === lastMergedStateRef.current) {
-      console.log("merge effect skipped (no change)");
-      return;
-    }
+    // Update cartState with the new state that includes the new items
+    // Updating cartState automatically updates window.openai.widgetState.
+    setCartState(nextState);
 
-    lastMergedStateRef.current = serialized;
-
-    if (shouldForceSyncFromResponse || !widgetStateEqual(nextState, cartState)) {
-      console.log("setting cartState from merge", nextState);
-      setCartState(nextState);
-    } else {
-      console.log("merge effect detected equal state, no setCartState");
-    }
-  }, [toolInput, toolOutput, widgetState, cartState]);
+  }, [toolOutput]);
 
   const panels: JsonPanelProps[] = [
     { label: "window.openai.toolInput", value: toolInput },
-    { label: "window.openai.toolResponseMetadata", value: toolResponseMetadata },
     { label: "window.openai.toolOutput", value: toolOutput },
-    { label: "window.openai.widgetState", value: widgetState },
+    { label: "window.openai.widgetState", value: cartState },
   ];
 
   const itemCards = cartItems.length ? (

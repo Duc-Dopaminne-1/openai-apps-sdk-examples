@@ -33,6 +33,7 @@ The MCP servers in this demo highlight how each tool can light up widgets by com
 
 - `src/` – Source for each widget example.
 - `assets/` – Generated HTML, JS, and CSS bundles after running the build step.
+- `shopping_cart_python/` – Python MCP server that demonstrates how `_meta["widgetSessionId"]` keeps `widgetState` in sync across turns for a shopping-cart widget.
 - `pizzaz_server_node/` – MCP server implemented with the official TypeScript SDK.
 - `pizzaz_server_python/` – Python MCP server that returns the Pizzaz widgets.
 - `solar-system_server_python/` – Python MCP server for the 3D solar system widget.
@@ -117,6 +118,19 @@ uvicorn solar-system_server_python.main:app --port 8000
 ```
 
 You can reuse the same virtual environment for all Python servers—install the dependencies once and run whichever entry point you need.
+
+### Shopping cart Python server
+
+Use this example to learn how `_meta["widgetSessionId"]` can carry `widgetState` between tool calls so the model and widget share the same shopping cart. The widget merges tool responses with prior `widgetState`, and UI actions (like incrementing quantities) feed back into that shared state so the assistant always sees the latest cart.
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r pizzaz_server_python/requirements.txt
+python shopping_cart_python/main.py
+```
+
+In production you should persist the cart server-side (see `shopping_cart_python/README.md`), but this demo shows the mechanics of threading cart state through `widgetSessionId`.
 
 ## Testing in ChatGPT
 
