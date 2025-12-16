@@ -35,23 +35,30 @@ token, the tools return widget markup or structured results.
 4. **Add a social connection to the tenant** for example Google oauth2 to provide a social login mechanism for uers.
    - Authentication > Social > google-oauth2 > Advanced > Promote Connection to Domain Level
 
-5. **Update your environment variables**
-   - `AUTHORIZATION_SERVER_URL`:  your tenant domain (e.g., `https://dev-your-tenant.us.auth0.com/`)
-   - Put a `.env` file in `authenticated_server_python/.env` if you prefer (same keys).
+### 2. Set the .env values
 
-### 2. Customize the app
+Create `authenticated_server_python/.env` with the values below:
 
-- Update `RESOURCE_SERVER_URL` to point to the URL where your MCP server is deployed.
+```env
+AUTHORIZATION_SERVER_URL=
+RESOURCE_SERVER_URL=
+```
+
+- `AUTHORIZATION_SERVER_URL`: Base URL for your OAuth authorization server (Auth0 tenant). This is what ChatGPT uses to start the OAuth flow.
+- `RESOURCE_SERVER_URL`: Public URL to this MCP server's `/mcp` endpoint. This is the protected resource URL advertised in the OAuth metadata.
+
+### 3. Customize the app
+
 - Adjust the `WWW-Authenticate` construction or scopes to match your security
   model.
-- Rebuild the widget assets (`pnpm run build`) if you change the UI.
 
-### Prerequisites
+
+### 4. Installation
+
+#### Prerequisites
 
 - Python 3.10+
 - A virtual environment (recommended)
-
-#### Installation
 
 ```bash
 python -m venv .venv
@@ -73,6 +80,16 @@ In a separate terminal, from the `authenticated_server_python`, run the followin
 ```bash
 uvicorn main:app --host 0.0.0.0 --port 8000
 ```
+
+To expose the server publicly (required for ChatGPT to reach it), tunnel the local port with ngrok:
+
+```bash
+ngrok http 8000
+```
+
+Copy the `https://...ngrok-free.app` URL and set:
+
+- `RESOURCE_SERVER_URL` in .env to `https://...ngrok-free.app/mcp`
 
 The server listens on `http://127.0.0.1:8000` and exposes the standard MCP
 endpoint at `GET /mcp`.

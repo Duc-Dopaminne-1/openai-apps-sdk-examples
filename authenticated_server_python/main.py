@@ -144,14 +144,23 @@ PAST_ORDERS_DATA = [
     },
 ]
 
-AUTHORIZATION_SERVER_URL = os.getenv(
-    "AUTHORIZATION_SERVER_URL",
-    "https://dev-65wmmp5d56ev40iy.us.auth0.com/",
-)
-RESOURCE_SERVER_URL = os.getenv(
-    "RESOURCE_SERVER_URL",
-    "https://945c890ee720.ngrok-free.app/mcp",
-)
+AUTHORIZATION_SERVER_URL = os.getenv("AUTHORIZATION_SERVER_URL")
+RESOURCE_SERVER_URL = os.getenv("RESOURCE_SERVER_URL")
+
+missing_env = [
+    name
+    for name, value in (
+        ("AUTHORIZATION_SERVER_URL", AUTHORIZATION_SERVER_URL),
+        ("RESOURCE_SERVER_URL", RESOURCE_SERVER_URL),
+    )
+    if not value
+]
+if missing_env:
+    raise RuntimeError(
+        "Missing required environment variables: "
+        + ", ".join(missing_env)
+        + ". Set them in authenticated_server_python/.env."
+    )
 
 print("AUTHORIZATION_SERVER_URL", AUTHORIZATION_SERVER_URL)
 print("RESOURCE_SERVER_URL", RESOURCE_SERVER_URL)
@@ -310,7 +319,6 @@ def _tool_meta(
         "openai/toolInvocation/invoking": widget.invoking,
         "openai/toolInvocation/invoked": widget.invoked,
         "openai/widgetAccessible": True,
-        "openai/resultCanProduceWidget": True,
     }
     if security_schemes is not None:
         meta["securitySchemes"] = deepcopy(security_schemes)
