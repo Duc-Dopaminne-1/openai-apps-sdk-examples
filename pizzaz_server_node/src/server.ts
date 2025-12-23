@@ -74,12 +74,15 @@ function readWidgetHtml(componentName: string): string {
   return htmlContents;
 }
 
+const WIDGET_DOMAIN = process.env.WIDGET_DOMAIN || "https://reunitegroup.com";
+
 function widgetDescriptorMeta(widget: PizzazWidget) {
   return {
     "openai/outputTemplate": widget.templateUri,
     "openai/toolInvocation/invoking": widget.invoking,
     "openai/toolInvocation/invoked": widget.invoked,
     "openai/widgetAccessible": true,
+    "openai/widgetDomain": WIDGET_DOMAIN,
   } as const;
 }
 
@@ -87,6 +90,7 @@ function widgetInvocationMeta(widget: PizzazWidget) {
   return {
     "openai/toolInvocation/invoking": widget.invoking,
     "openai/toolInvocation/invoked": widget.invoked,
+    "openai/widgetDomain": WIDGET_DOMAIN,
   } as const;
 }
 
