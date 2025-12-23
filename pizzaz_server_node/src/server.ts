@@ -150,6 +150,11 @@ widgets.forEach((widget) => {
   widgetsById.set(widget.id, widget);
   widgetsByUri.set(widget.templateUri, widget);
 });
+// Map the public widget URL so ChatGPT can fetch the resource directly.
+// We reuse the first widget (map) for content; all tools point to the same HTML.
+if (widgets.length > 0) {
+  widgetsByUri.set(WIDGET_URL, widgets[0]);
+}
 
 const toolInputSchema = {
   type: "object",
@@ -181,21 +186,26 @@ const tools: Tool[] = widgets.map((widget) => ({
   },
 }));
 
-const resources: Resource[] = widgets.map((widget) => ({
-  uri: widget.templateUri,
-  name: widget.title,
-  description: `${widget.title} widget markup`,
-  mimeType: "text/html+skybridge",
-  _meta: widgetDescriptorMeta(widget),
-}));
+// Expose a single public resource at WIDGET_URL so the host can resolve it.
+const resources: Resource[] = [
+  {
+    uri: WIDGET_URL,
+    name: "Pizzaz widget",
+    description: "Pizzaz widget markup",
+    mimeType: "text/html+skybridge",
+    _meta: widgetDescriptorMeta(widgets[0]),
+  },
+];
 
-const resourceTemplates: ResourceTemplate[] = widgets.map((widget) => ({
-  uriTemplate: widget.templateUri,
-  name: widget.title,
-  description: `${widget.title} widget markup`,
-  mimeType: "text/html+skybridge",
-  _meta: widgetDescriptorMeta(widget),
-}));
+const resourceTemplates: ResourceTemplate[] = [
+  {
+    uriTemplate: WIDGET_URL,
+    name: "Pizzaz widget",
+    description: "Pizzaz widget markup",
+    mimeType: "text/html+skybridge",
+    _meta: widgetDescriptorMeta(widgets[0]),
+  },
+];
 
 function createPizzazServer(): Server {
   const server = new Server(
