@@ -75,10 +75,11 @@ function readWidgetHtml(componentName: string): string {
 }
 
 const WIDGET_DOMAIN = process.env.WIDGET_DOMAIN || "https://reunitegroup.com";
+const WIDGET_URL = `${WIDGET_DOMAIN}/pizzaz`;
 
 function widgetDescriptorMeta(widget: PizzazWidget) {
   return {
-    "openai/outputTemplate": widget.templateUri,
+    "openai/outputTemplate": WIDGET_URL,
     "openai/toolInvocation/invoking": widget.invoking,
     "openai/toolInvocation/invoked": widget.invoked,
     "openai/widgetAccessible": true,
